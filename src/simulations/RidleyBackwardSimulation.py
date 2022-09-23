@@ -11,16 +11,24 @@ import sys
 data_path = '/storage/shared/oceanparcels/input_data/'
 home_dir = '/nethome/manra003/KempsRidley_turtle_strandings/'
 
+#$station $field $windp $days
 args = sys.argv
-assert len(args) == 2
+assert len(args) == 5
 
-fields = args[1]
+location = args[1]
+print(location)
+
+fields = args[2]
 print(fields)
 
-location = 'Den Helder'
-strand_lon, strand_lat = 4.7323, 52.9627
-release_date = datetime(2014, 12, 22)
-windp=='1pWind'
+windp = args[3]
+print(windp)
+
+d_count = int(args[4])
+print(d_count)
+
+strand_lon, strand_lat = 4.1591, 52.0277
+release_date = datetime(2011, 12, 12)
 
 if windp=='1pWind':
     windage = 0.01
@@ -31,11 +39,8 @@ elif windp == '3pWind':
 else:
     raise ValueError('check windage value again')
     
-d_count = 120
-# fields = 'curr+wind'  
-    
 # region: load currents (reanalysis data- incorporates tides)
-re_files = sorted(glob(data_path + 'CMEMS/NWSHELF_MULTIYEAR_PHY_004_009/metoffice_foam1_amm7_NWS_CUR_dm2014*.nc'))#.format(release_date.year))
+re_files = sorted(glob(data_path + 'CMEMS/NWSHELF_MULTIYEAR_PHY_004_009/metoffice_foam1_amm7_NWS_CUR_dm{0}*.nc'.format(release_date.year)))
 
 filenames_re = {'U': re_files,
                 'V': re_files}
@@ -51,7 +56,7 @@ fieldset_current = FieldSet.from_netcdf(filenames_re, variables_re,
                                     dimensions_re, indices=index0)
 
 # region: load stokes
-st_files = sorted(glob(data_path + 'CMEMS/NWSHELF_REANALYSIS_WAV_004_015/metoffice_wave_amm15_NWS_WAV_3hi2014*.nc')) #.format(release_date.year)))
+st_files = sorted(glob(data_path + 'CMEMS/NWSHELF_REANALYSIS_WAV_004_015/metoffice_wave_amm15_NWS_WAV_3hi{0}*.nc'.format(release_date.year)))
 
 filenames_stokes = {'U_stokes': st_files,
                     'V_stokes': st_files}
@@ -67,7 +72,7 @@ fieldset_stokes.V_stokes.units = Geographic()
 #endregion
 
 #region: load wind 
-wind_files=sorted(glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_2014*.nc')) #.format(release_date.year)))
+wind_files=sorted(glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_{0}*.nc'.format(release_date.year)))
 
 filenames_wind = {'U_wind': wind_files,
                   'V_wind': wind_files}
@@ -108,7 +113,7 @@ else:
                             V=fieldset_current.V)
 
 #region: load temperature metoffice_foam1_amm7_NWS_TEM_dm20010815.nc
-tem_files = sorted(glob(data_path + 'CMEMS/NWSHELF_MULTIYEAR_PHY_004_009/metoffice_foam1_amm7_NWS_TEM_dm2014*.nc'))#.format(release_date.year))
+tem_files = sorted(glob(data_path + 'CMEMS/NWSHELF_MULTIYEAR_PHY_004_009/metoffice_foam1_amm7_NWS_TEM_dm{0}*.nc'.format(release_date.year)))
 
 filenames_tem = {'T': tem_files}
 variables_tem = {'T': 'thetao'}
