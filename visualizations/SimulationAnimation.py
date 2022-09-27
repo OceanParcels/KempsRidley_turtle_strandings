@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 from datetime import timedelta
 import numpy as np
 from matplotlib.animation import FuncAnimation
-import matplotlib.colors as color
-import pandas as pd
+from matplotlib import colors, colorbar
+import cmocean
 
 home_folder = '/Users/dmanral/Desktop/Analysis/Ridley/'
 
@@ -13,7 +13,7 @@ model_mask_file = home_folder + 'data/landMask_297x_375y'
 
 landMask = np.genfromtxt(model_mask_file, delimiter=None)
 
-file = 'Sum_BK_3pWind_Beaching_curr+wind_120days_WesterschouwenSchouwen_100p'
+file = 'Sum_BK_3pWind_Beaching_curr+stokes_120days_WesterschouwenSchouwen'
 ds = xr.open_dataset(home_folder + 'Simulations/{0}.nc'.format(file))
 print(ds)
 
@@ -22,9 +22,9 @@ lons = U_ds.longitude
 lats = U_ds.latitude
 fieldMesh_x, fieldMesh_y = np.meshgrid(lons, lats)
 
-fig = plt.figure()
-ax = plt.axes()
-colormap = color.ListedColormap(['whitesmoke', 'grey'])
+fig, [ax, cax] = plt.subplots(1, 2, gridspec_kw={"width_ratios": [50, 1]})
+colormap = colors.ListedColormap(['white', 'gainsboro'])
+
 # ax.pcolormesh(fieldMesh_x, fieldMesh_y, landMask, cmap=colormap,
 #               shading='auto')
 ax.pcolormesh(fieldMesh_x[100:251, 100:226], fieldMesh_y[100:251, 100:226], landMask[100:250, 100:225], cmap=colormap,
@@ -42,7 +42,15 @@ print('Time_range: ', len(time_range))
 # release locations
 time_id = np.where(ds['time'] == time_range[0])
 
-scatter = ax.scatter(ds['lon'].values[time_id], ds['lat'].values[time_id], s=1, c='blue')
+theta1 = ds['theta']
+
+temp_cmp = cmocean.cm.thermal
+norm = colors.Normalize(vmin=-10, vmax=20)
+
+cb1 = colorbar.ColorbarBase(cax, cmap=temp_cmp,
+                         norm=norm,
+                         orientation='vertical', label='Temperature (°C)')
+scatter = ax.scatter(ds['lon'].values[time_id], ds['lat'].values[time_id], s=1)
 
 t = np.datetime_as_string(time_range[0], unit='m')
 title = ax.set_title('Particles at z = 0 m and time = ' + t)
@@ -55,6 +63,7 @@ def animate(i):
     title.set_text('Particles at z = 0 m and time = ' + t)
 
     scatter.set_offsets(np.c_[ds['lon'].values[time_id], ds['lat'].values[time_id]])
+    scatter.set_color(temp_cmp(norm(theta1.values[time_id])))
 
 
 size = len(time_range)
