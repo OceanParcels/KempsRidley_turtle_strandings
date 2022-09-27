@@ -71,7 +71,7 @@ def AttemptUnBeaching(particle, fieldset, time):
         (u, v) = fieldset.UV[time, particle.depth, particle.lat, particle.lon]
         if u == 0 and v == 0:
             particle.beached = -2 # unbeaching failed
-            print('Unbeaching failed %.2f %.2f %d' % (particle.lat, particle.lon, particle.beached))
+            print('Unbeaching failed %d %.2f %.2f %d' % (particle.id, particle.lat, particle.lon, particle.beached))
         else:
             particle.beached = 0 # at sea again
    
