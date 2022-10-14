@@ -47,7 +47,7 @@ def AdvectionRK4_Wind(particle, fieldset, time):
         
 def SampleTemperature(particle, fieldset, time):
     if particle.beached == 0:
-        particle.theta=fieldset.T[time, particle.depth, particle.lat, particle.lon]
+        particle.theta=fieldset.T[time+particle.dt, particle.depth, particle.lat, particle.lon]
    
     
 def DeleteParticle(particle, fieldset, time):
