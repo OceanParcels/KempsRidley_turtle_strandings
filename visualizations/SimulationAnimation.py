@@ -13,7 +13,7 @@ model_mask_file = home_folder + 'data/landMask_297x_375y'
 
 landMask = np.genfromtxt(model_mask_file, delimiter=None)
 
-file = 'Sum_BK_3pWind_Beaching_curr+stokes_120days_WesterschouwenSchouwen'
+file = 'Sum_BK_NoWind_Beaching_curr+stokes_120days_DenHelder'
 ds = xr.open_dataset(home_folder + 'Simulations/{0}.nc'.format(file))
 print(ds)
 
@@ -44,13 +44,17 @@ time_id = np.where(ds['time'] == time_range[0])
 
 theta1 = ds['theta']
 
-temp_cmp = cmocean.cm.thermal
-norm = colors.Normalize(vmin=-10, vmax=20)
+# temp_cmp = cmocean.cm.balance
+temp_cmp = plt.cm.seismic
+norm = colors.Normalize(vmin=5, vmax=20)
 
 cb1 = colorbar.ColorbarBase(cax, cmap=temp_cmp,
-                         norm=norm,
-                         orientation='vertical', label='Temperature (°C)')
+                            norm=norm,
+                            orientation='vertical', label='Temperature (°C)')
 scatter = ax.scatter(ds['lon'].values[time_id], ds['lat'].values[time_id], s=1)
+# d=270
+# ax.scatter(ds.lon[:, d], ds.lat[:, d], c=ds.theta[:, d], cmap=temp_cmp, s=0.5)
+# plt.show()
 
 t = np.datetime_as_string(time_range[0], unit='m')
 title = ax.set_title('Particles at z = 0 m and time = ' + t)
