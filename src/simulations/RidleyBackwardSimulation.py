@@ -199,8 +199,8 @@ startlon_release, endlon_release, startlat_release, endlat_release, coords = uti
                                                                                                    strand_lon,
                                                                                                    strand_lat)
 # 10x10 particles -> 100 particles homogeneously spread over grid cell
-re_lons = np.linspace(startlon_release, endlon_release, np_sqrt, endpoint=False)
-re_lats = np.linspace(startlat_release, endlat_release, np_sqrt, endpoint=False)
+re_lons = np.linspace(startlon_release, endlon_release, np_sqrt)
+re_lats = np.linspace(startlat_release, endlat_release, np_sqrt)
 fieldMesh_x_re, fieldMesh_y_re = np.meshgrid(re_lons, re_lats)
 
 pset = ParticleSet.from_list(fieldset=fieldset_all, pclass=TurtleParticle, lon=fieldMesh_x_re, lat=fieldMesh_y_re,
