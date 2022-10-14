@@ -9,4 +9,5 @@ def nearestcoastcell(fieldMesh_x, fieldMesh_y, coastMask, lon, lat):
     endlon_release = fieldMesh_x[coords[0], coords[1] + 1]
     startlat_release = fieldMesh_y[coords]
     endlat_release = fieldMesh_y[coords[0] + 1, coords[1]]
-    return startlon_release, endlon_release, startlat_release, endlat_release, coords
+    dx, dy = 0.001, 0.001  # 0.068 km and 0.111 km at 52°N latitude, respectively
+    return startlon_release + dx, endlon_release - dx, startlat_release + dy, endlat_release - dy, coords

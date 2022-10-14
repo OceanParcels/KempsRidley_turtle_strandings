@@ -33,15 +33,19 @@ st = stations.loc[lambda stations: stations['Location'] == location]
 strand_lon, strand_lat = st['Longitude'].values[0], st['Latitude'].values[0]
 release_date = datetime.strptime(st['Date'].values[0] + ' 00:00:00', '%d/%m/%Y %H:%M:%S')
 
-if '1pWind' in windp:
-    windage = 0.01
-elif '2pWind' in windp:
-    windage = 0.02
-elif '3pWind' in windp:
-    windage = 0.03
+if 'wind' in fields:
+    if '1pWind' in windp:
+        windage = 0.01
+    elif '2pWind' in windp:
+        windage = 0.02
+    elif '3pWind' in windp:
+        windage = 0.03
+    else:
+        raise ValueError('check windage value again')
 else:
-    raise ValueError('check windage value again')
-
+    windp = 'NoWind_Beaching'
+    windage = 0
+    
 np_sqrt = 100
 
 # region: load currents (reanalysis data- incorporates tides)
@@ -89,25 +93,26 @@ fieldset_stokes.V_stokes.units = Geographic()
 # endregion
 
 # region: load wind
-if location == 'IJmuiden':
-    wind_files = sorted(glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_200[6-7]*.nc'))
-else:
-    wind_files = sorted(glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_{0}*.nc'.format(release_date.year)))
+if windage > 0:
+    if location == 'IJmuiden':
+        wind_files = sorted(glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_200[6-7]*.nc'))
+    else:
+        wind_files = sorted(glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_{0}*.nc'.format(release_date.year)))
 
-filenames_wind = {'U_wind': wind_files,
-                  'V_wind': wind_files}
-variables_wind = {'U_wind': 'u10',
-                  'V_wind': 'v10'}
-dimensions_wind = {'lat': 'latitude',
-                   'lon': 'longitude',
-                   'time': 'time'}
+    filenames_wind = {'U_wind': wind_files,
+                      'V_wind': wind_files}
+    variables_wind = {'U_wind': 'u10',
+                      'V_wind': 'v10'}
+    dimensions_wind = {'lat': 'latitude',
+                       'lon': 'longitude',
+                       'time': 'time'}
 
-fieldset_wind = FieldSet.from_netcdf(filenames_wind, variables_wind, dimensions_wind)
+    fieldset_wind = FieldSet.from_netcdf(filenames_wind, variables_wind, dimensions_wind)
 
-fieldset_wind.U_wind.set_scaling_factor(windage)
-fieldset_wind.V_wind.set_scaling_factor(windage)
-fieldset_wind.U_wind.units = GeographicPolar()
-fieldset_wind.V_wind.units = Geographic()
+    fieldset_wind.U_wind.set_scaling_factor(windage)
+    fieldset_wind.V_wind.set_scaling_factor(windage)
+    fieldset_wind.U_wind.units = GeographicPolar()
+    fieldset_wind.V_wind.units = Geographic()
 # endregion
 
 if fields == 'curr+stokes':
@@ -151,6 +156,7 @@ fieldset_temp = FieldSet.from_netcdf(filenames_tem, variables_tem,
                                      dimensions_tem, indices=index0)
 
 fieldset_all.add_field(fieldset_temp.T)
+fieldset_all.T.interp_method = 'linear_invdist_land_tracer' #updated from the interpolation tutorial
 # endregion
 
 lons = fieldset_current.U.lon
@@ -182,7 +188,7 @@ fieldset_all.add_vector_field(vectorField_unbeach)
 
 
 class TurtleParticle(JITParticle):
-    theta = Variable('theta', dtype=np.float64, initial=-999.0, to_write=True)
+    theta = Variable('theta', dtype=np.float64, initial=fieldset_all.T, to_write=True)
     # beached : 0 at sea, 1 beached, -1 deleted, -2 unbeaching failed
     beached = Variable('beached', dtype=np.int32, initial=0., to_write=False)
 
@@ -193,8 +199,8 @@ startlon_release, endlon_release, startlat_release, endlat_release, coords = uti
                                                                                                    strand_lon,
                                                                                                    strand_lat)
 # 10x10 particles -> 100 particles homogeneously spread over grid cell
-re_lons = np.linspace(startlon_release, endlon_release, np_sqrt, endpoint=False)
-re_lats = np.linspace(startlat_release, endlat_release, np_sqrt, endpoint=False)
+re_lons = np.linspace(startlon_release, endlon_release, np_sqrt)
+re_lats = np.linspace(startlat_release, endlat_release, np_sqrt)
 fieldMesh_x_re, fieldMesh_y_re = np.meshgrid(re_lons, re_lats)
 
 pset = ParticleSet.from_list(fieldset=fieldset_all, pclass=TurtleParticle, lon=fieldMesh_x_re, lat=fieldMesh_y_re,
