@@ -11,9 +11,11 @@ home_folder = '/Users/dmanral/Desktop/Analysis/Ridley/'
 # we need to coordinates file to access the corner points - glamf/gphif
 model_mask_file = home_folder + 'data/landMask_297x_375y'
 
-landMask = np.genfromtxt(model_mask_file, delimiter=None)
+landMask = np.genfromtxt(model_mask_file, delimiter=None) \
 
-file = 'Sum_BK_NoWind_Beaching_curr+stokes_120days_DenHelder'
+# 'WesterschouwenSchouwen', 'Monster', 'DenHelder', 'Westkapelle', 'IJmuiden'
+s = 'Westkapelle'
+file = 'Sum_BK_NoWind_Beaching_curr+stokes_120days_{0}'.format(s)
 ds = xr.open_dataset(home_folder + 'Simulations/{0}.nc'.format(file))
 print(ds)
 
@@ -45,7 +47,7 @@ time_id = np.where(ds['time'] == time_range[0])
 theta1 = ds['theta']
 
 # temp_cmp = cmocean.cm.balance
-temp_cmp = plt.cm.seismic
+temp_cmp = plt.cm.coolwarm
 norm = colors.Normalize(vmin=5, vmax=20)
 
 cb1 = colorbar.ColorbarBase(cax, cmap=temp_cmp,

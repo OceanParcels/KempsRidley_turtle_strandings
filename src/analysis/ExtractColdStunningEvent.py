@@ -1,3 +1,9 @@
+"""
+Code to plot the temperature of particles over time and days before stranding.
+Note: Here, we ignore the temperature measurements at the release time, i.e. day 0
+- it adds bias for particles very close to the coast due to temperature interpolation from sea to land cell.
+"""
+
 import xarray as xr
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,7 +11,6 @@ import numpy as np
 home_folder = '/Users/dmanral/Desktop/Analysis/Ridley/'
 # 'WesterschouwenSchouwen', 'Monster', 'DenHelder', 'Westkapelle', 'IJmuiden'
 for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelder', 'IJmuiden')):
-# s = 'IJmuiden'
     file = 'Sum_BK_NoWind_Beaching_curr+stokes_120days_{0}'.format(s)
     data_ds = xr.open_dataset(home_folder + 'Simulations/{0}.nc'.format(file))
 
@@ -21,7 +26,7 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     days = 120
 
     fig, ax = plt.subplots(ncols=2, nrows=1,
-                           dpi=300, figsize=(16, 7))
+                           dpi=100, figsize=(16, 7))
     fig.suptitle(file)
     ax[0].axhline(threshold_t10, c='b', linestyle='--', label='10°C')
     ax[0].axhline(threshold_t12, c='orange', linestyle='--', label='12°C')
@@ -35,6 +40,7 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     ax[0].set_xlabel('Time', fontsize=12)
     ax[0].tick_params('x', labelrotation=45)
     ax[0].set_ylabel('Temperature (°C)', fontsize=12)
+    ax[0].set_xlabel('Time (towards stranding)', fontsize=12)
     ax[0].legend(prop={'size': 12})
 
     # second plot
@@ -60,13 +66,7 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     print('min max days for 10C: ', min(days_10), max(days_10))
     print('min max days for 12C: ', min(days_12), max(days_12))
     print('min max days for 14C: ', min(days_14), max(days_14))
-    # kwargs = dict(alpha=0.5, bins=40)
-    # bins = np.linspace(0, 100, 51)
-    # bins = np.arange(0, 76)
 
-    # ax[1].hist(days_10, bins=bins, color='b', label='10°C')
-    # ax[1].hist(days_12, bins=bins, color='orange', label='12°C', alpha=0.7)
-    # ax[1].hist(days_14, bins=bins, color='r', label='14°C', alpha=0.7)
     T10_t, T10_count = np.unique(days_10, return_counts=True)
     T12_t, T12_count = np.unique(days_12, return_counts=True)
     T14_t, T14_count = np.unique(days_14, return_counts=True)
@@ -74,7 +74,16 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     ax[1].bar(T14_t, T14_count, color='tomato', label='14°C')
     ax[1].bar(T12_t, T12_count, color='orange', label='12°C', alpha=0.7)
 
-    ax[1].legend(prop={'size': 12})
+    # reordering the labels
+    handles, labels = ax[1].get_legend_handles_labels()
+
+    # specify order
+    order = [0, 2, 1]
+
+    # pass handle & labels lists along with order as below
+    ax[1].legend([handles[i] for i in order], [labels[i] for i in order], prop={'size': 12})
+
+    # ax[1].legend(prop={'size': 12})
     ax[1].set_xlabel('Days before threshold temperature', fontsize=12)
     ax[1].set_ylabel('Number of particles', fontsize=12)
     ax[1].set_yscale('log')
