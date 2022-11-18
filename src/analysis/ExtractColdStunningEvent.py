@@ -9,6 +9,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 home_folder = '/Users/dmanral/Desktop/Analysis/Ridley/'
+
+threshold_t10 = 10
+threshold_t12 = 12
+threshold_t14 = 14  # degree Celcius
+
+n_particles = 10000
+days = 120
+
 # 'WesterschouwenSchouwen', 'Monster', 'DenHelder', 'Westkapelle', 'IJmuiden'
 for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelder', 'IJmuiden')):
     file = 'Sum_BK_NoWind_Beaching_curr+stokes_120days_{0}'.format(s)
@@ -17,13 +25,6 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     # remove all zero temperature- beached particles
     ds = data_ds.where(data_ds['theta'] != 0.)
     mean_theta = ds.theta[:, 1:].mean(dim='traj', skipna=True).values
-
-    threshold_t10 = 10
-    threshold_t12 = 12
-    threshold_t14 = 14  # degree Celcius
-
-    n_particles = 10000
-    days = 120
 
     fig, ax = plt.subplots(ncols=2, nrows=1,
                            dpi=100, figsize=(16, 7))
@@ -43,7 +44,7 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     ax[0].set_xlabel('Time (towards stranding)', fontsize=12)
     ax[0].legend(prop={'size': 12})
 
-    # second plot
+    # second plot:
     days_10 = np.empty((n_particles))
     days_10[:] = np.nan
     days_12 = np.empty((n_particles))
@@ -54,13 +55,14 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     for i in range(n_particles):
         filter_10 = np.where(ds.theta[i, 1:] > threshold_t10)[0]
         if filter_10.size > 0:
-            days_10[i] = filter_10[0]
+            # plus 1: since we are ignoring day 0 and np.where returns results from day 1 onwards
+            days_10[i] = filter_10[0] + 1
         filter_12 = np.where(ds.theta[i, 1:] > threshold_t12)[0]
         if filter_12.size > 0:
-            days_12[i] = filter_12[0]
+            days_12[i] = filter_12[0] + 1
         filter_14 = np.where(ds.theta[i, 1:] > threshold_t14)[0]
         if filter_14.size > 0:
-            days_14[i] = filter_14[0]
+            days_14[i] = filter_14[0] + 1
 
     print('Location: ', s)
     print('min max days for 10C: ', min(days_10), max(days_10))
@@ -93,3 +95,5 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     #     plt.plot(ds.time[i, 1:], ds.theta[i, 1:], c='royalblue')
     # plt.show()
     plt.savefig(home_folder + 'Plots/{0}_log.jpeg'.format(file))
+
+
