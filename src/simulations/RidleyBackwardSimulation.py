@@ -45,7 +45,7 @@ if 'wind' in fields:
 else:
     windp = 'NoWind_Beaching'
     windage = 0
-    
+
 np_sqrt = 100
 
 # region: load currents (reanalysis data- incorporates tides)
@@ -97,7 +97,8 @@ if windage > 0:
     if location == 'IJmuiden':
         wind_files = sorted(glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_200[6-7]*.nc'))
     else:
-        wind_files = sorted(glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_{0}*.nc'.format(release_date.year)))
+        wind_files = sorted(
+            glob(data_path + 'ERA5/reanalysis-era5-single-level_wind10m_{0}*.nc'.format(release_date.year)))
 
     filenames_wind = {'U_wind': wind_files,
                       'V_wind': wind_files}
@@ -156,7 +157,7 @@ fieldset_temp = FieldSet.from_netcdf(filenames_tem, variables_tem,
                                      dimensions_tem, indices=index0)
 
 fieldset_all.add_field(fieldset_temp.T)
-fieldset_all.T.interp_method = 'linear_invdist_land_tracer' #updated from the interpolation tutorial
+fieldset_all.T.interp_method = 'linear_invdist_land_tracer'  # updated from the interpolation tutorial
 # endregion
 
 lons = fieldset_current.U.lon
@@ -165,14 +166,14 @@ fieldMesh_x, fieldMesh_y = np.meshgrid(lons, lats)
 coastMask = np.loadtxt(home_dir + 'data/coastalMask_297x_375y')
 
 # region: load unbeaching land currents
-file_landCurrent_U = home_dir + 'data/landCurrent_U_%ix_%iy' % (len(lons), len(lats))
-file_landCurrent_V = home_dir + 'data/landCurrent_V_%ix_%iy' % (len(lons), len(lats))
+file_displacement_U = home_dir + 'data/displacement_U_%ix_%iy' % (len(lons), len(lats))
+file_displacement_V = home_dir + 'data/displacement_V_%ix_%iy' % (len(lons), len(lats))
 
-landCurrent_U = np.loadtxt(file_landCurrent_U)
-landCurrent_V = np.loadtxt(file_landCurrent_V)
+landDisp_U = np.loadtxt(file_displacement_U)
+landDisp_V = np.loadtxt(file_displacement_V)
 
-U_land = Field('U_land', landCurrent_U, lon=lons, lat=lats, fieldtype='U')
-V_land = Field('V_land', landCurrent_V, lon=lons, lat=lats, fieldtype='V')
+U_land = Field('U_land', landDisp_U, lon=lons, lat=lats, fieldtype='U')
+V_land = Field('V_land', landDisp_V, lon=lons, lat=lats, fieldtype='V')
 
 fieldset_all.add_field(U_land)
 fieldset_all.add_field(V_land)
@@ -182,15 +183,13 @@ fieldset_all.V_land.units = Geographic()
 
 vectorField_unbeach = VectorField('UV_unbeach', U_land, V_land)
 fieldset_all.add_vector_field(vectorField_unbeach)
-
-
 # endregion
 
 
 class TurtleParticle(JITParticle):
     theta = Variable('theta', dtype=np.float64, initial=fieldset_all.T, to_write=True)
     # beached : 0 at sea, 1 beached, -1 deleted, -2 unbeaching failed
-    beached = Variable('beached', dtype=np.int32, initial=0., to_write=False)
+    beached = Variable('beached', dtype=np.int32, initial=0., to_write=True)
 
 
 startlon_release, endlon_release, startlat_release, endlat_release, coords = util.nearestcoastcell(fieldMesh_x,
@@ -212,16 +211,17 @@ output_file = pset.ParticleFile(name=filename,
                                 outputdt=timedelta(days=1))
 
 if fields == 'curr+wind' or fields == 'curr+stokes+wind':
-    kernels = pset.Kernel(tk.AdvectionRK4_Wind) + pset.Kernel(tk.BeachTesting) + pset.Kernel(tk.AttemptUnBeaching) + pset.Kernel(
-    tk.SampleTemperature)
+    kernels = pset.Kernel(tk.AdvectionRK4_Wind) + pset.Kernel(tk.BeachTesting) + pset.Kernel(
+        tk.AttemptUnBeaching) + pset.Kernel(
+        tk.SampleTemperature)
 else:
-    kernels = pset.Kernel(tk.AdvectionRK4) + pset.Kernel(tk.BeachTesting) + pset.Kernel(tk.AttemptUnBeaching) + pset.Kernel(
-    tk.SampleTemperature)
-
+    kernels = pset.Kernel(tk.AdvectionRK4) + pset.Kernel(tk.BeachTesting) + pset.Kernel(
+        tk.AttemptUnBeaching) + pset.Kernel(
+        tk.SampleTemperature)
 
 pset.execute(kernels,
              runtime=timedelta(days=d_count),
-             dt=-1 * timedelta(minutes=10),
+             dt=-1 * timedelta(minutes=5),
              output_file=output_file,
              recovery={ErrorCode.ErrorOutOfBounds: tk.DeleteParticle})
 output_file.close()
