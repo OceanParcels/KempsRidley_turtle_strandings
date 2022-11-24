@@ -3,13 +3,13 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import pandas as pd
+from matplotlib.lines import Line2D
+from copy import copy
 
 
 # find nearest coastal cell to defined beaching location, to release in water,
 # remove corner points by using dx,dy
-# unfortunately have to handle release locations for Monster beach specially- as the point lies on land
-# better way exists- but shortage of time.
-def nearestcoastcell(fieldMesh_x, fieldMesh_y, coastMask, lon, lat, monster_flag):
+def nearestcoastcell(fieldMesh_x, fieldMesh_y, coastMask, lon, lat):
     dist = np.sqrt((fieldMesh_x - lon) ** 2 * coastMask + (fieldMesh_y - lat) ** 2 * coastMask)
     dist[dist == 0] = 'nan'
     coords = np.where(dist == np.nanmin(dist))
@@ -25,7 +25,7 @@ def nearestcoastcell(fieldMesh_x, fieldMesh_y, coastMask, lon, lat, monster_flag
         endlon_release = fieldMesh_x[coords[0], coords[1] + 1] - dx
 
     startlat_release = fieldMesh_y[coords]
-    if startlat_release > lat and monster_flag:  # below cell
+    if startlat_release > lat:  # below cell
         startlat_release = startlat_release - dy
         endlat_release = fieldMesh_y[coords[0] - 1, coords[1]] + dy
     else:
@@ -45,17 +45,17 @@ coastMask = np.loadtxt(home_dir + 'data/coastalMask_297x_375y')
 file_land = home_dir + 'data/landMask_297x_375y'
 landMask = np.genfromtxt(file_land, delimiter=None)
 
-fig = plt.figure(figsize=(16, 8), dpi=300)
+lmask = np.genfromtxt(home_dir + 'data/true_landMask_296x_374y', delimiter=None)
+color_land = copy(plt.get_cmap('Reds'))(0)
+color_ocean = copy(plt.get_cmap('Reds'))(128)
+
+fig = plt.figure(figsize=(16, 10), dpi=300)
 ax = plt.axes()
 colormap = clr.ListedColormap(['skyblue', 'white'])
 plt.title('Released particles for each stranding location', fontsize=20, pad=20)
-# ax.pcolormesh(fieldMesh_x, fieldMesh_y, landMask, cmap=colormap)
-ax.pcolormesh(fieldMesh_x[150:251, 175:226], fieldMesh_y[150:251, 175:226], landMask[150:250, 175:225], cmap=colormap,
-              shading='flat')
-# ax.pcolormesh(fieldMesh_x[150:250, 200:225], fieldMesh_y[150:250, 200:225], landMask[150:250, 200:225], cmap=colormap)
-# ax.pcolormesh(fieldMesh_x[150:251, 200:226], fieldMesh_y[150:251, 200:226], coastMask[150:250, 200:225], cmap=colormap,
-#               shading='flat')
-plt.scatter(fieldMesh_x, fieldMesh_y, s=0.2, c='black')
+ax.pcolormesh(fieldMesh_x[150:251, 200:226], fieldMesh_y[150:251, 200:226], lmask[150:250, 200:225], cmap=colormap)
+# ax.scatter(fieldMesh_x, fieldMesh_y, c=landMask, s=20,
+#            cmap='Reds_r', vmin=-0.05, vmax=0.05, edgecolors='k')
 
 colors = np.array(('r', 'b', 'g', 'gold', 'pink'))
 stations = pd.read_csv(home_dir + 'Locations_NL.csv')
@@ -63,16 +63,11 @@ np_sqrt = 100
 
 for index, st in stations.iterrows():
     strand_lon, strand_lat = st['Longitude'], st['Latitude']
-    if st['Location'] == 'Monster':
-        monster_flag = False
-    else:
-        monster_flag = True
     startlon_release, endlon_release, startlat_release, endlat_release, coords = nearestcoastcell(fieldMesh_x,
                                                                                                   fieldMesh_y,
                                                                                                   coastMask,
                                                                                                   strand_lon,
-                                                                                                  strand_lat,
-                                                                                                  monster_flag)
+                                                                                                  strand_lat)
 
     # 10x10 particles -> 100 particles homogeneously spread over grid cell
     re_lons = np.linspace(startlon_release, endlon_release, np_sqrt)
@@ -84,8 +79,19 @@ for index, st in stations.iterrows():
     ax.text(strand_lon, strand_lat - 0.3, st['Location'],
             bbox=dict(facecolor='white', alpha=0.7, pad=0.2, edgecolor='none'),
             fontsize=15)
-
+ax.tick_params(axis='both', labelsize=13)
 ax.set_xlim(3.2, 5)
 ax.set_ylim(50, 55)
-plt.savefig(home_dir + 'Plots/NewReleaseCells.jpeg')
+
+custom_lines = [Line2D([], [], color='black', marker='x', linestyle='None', markersize=12, label='Stranding location'),
+                Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, label='Released particles')]
+ax.legend(handles=custom_lines, bbox_to_anchor=(.01, .93), loc='center left', borderaxespad=0.,
+          framealpha=1,prop={'size': 14})
+
+# custom_lines = [Line2D([0], [0], c=color_ocean, marker='o', markersize=10, markeredgecolor='k', lw=0),
+#                 Line2D([0], [0], c=color_land, marker='o', markersize=10, markeredgecolor='k', lw=0)]
+# ax.legend(custom_lines, ['ocean point', 'land point'], bbox_to_anchor=(.01, .93), loc='center left', borderaxespad=0.,
+#           framealpha=1)
+
+plt.savefig(home_dir + 'Plots/ReleaseCells.jpeg')
 # plt.show()
