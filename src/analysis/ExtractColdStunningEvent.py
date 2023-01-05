@@ -7,6 +7,9 @@ Note: Here, we ignore the temperature measurements at the release time, i.e. day
 import xarray as xr
 import matplotlib.pyplot as plt
 import numpy as np
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+from matplotlib import colors, colorbar
 
 home_folder = '/Users/dmanral/Desktop/Analysis/Ridley/'
 
@@ -17,17 +20,19 @@ threshold_t14 = 14  # degree Celcius
 n_particles = 10000
 days = 120
 
+figure_dpi = 100
+
 # 'WesterschouwenSchouwen', 'Monster', 'DenHelder', 'Westkapelle', 'IJmuiden'
-for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelder', 'IJmuiden')):
-    file = 'Sum_BK_NoWind_Beaching_curr+stokes_120days_{0}'.format(s)
+for s in np.array(('Monster', 'Den-Helder', 'Westerschouwen-Schouwen', 'Westkapelle', 'IJmuiden')):
+    file = 'Sum_BK_NoWind_curr+stokes_120days_{0}'.format(s)
     data_ds = xr.open_dataset(home_folder + 'Simulations/{0}.nc'.format(file))
 
-    # remove all zero temperature- beached particles
-    ds = data_ds.where(data_ds['theta'] != 0.)
+    # remove all zero temperature and beached particles (only at sea, beached=0)
+    ds = data_ds.where((data_ds['theta'] != 0.) & (data_ds['beached'] == 0))
     mean_theta = ds.theta[:, 1:].mean(dim='traj', skipna=True).values
 
     fig, ax = plt.subplots(ncols=2, nrows=1,
-                           dpi=100, figsize=(16, 7))
+                           dpi=figure_dpi, figsize=(16, 7))
     fig.suptitle(file)
     ax[0].axhline(threshold_t10, c='b', linestyle='--', label='10°C')
     ax[0].axhline(threshold_t12, c='orange', linestyle='--', label='12°C')
@@ -37,7 +42,7 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     ax[0].set_ylim(7, 21)
 
     ax[0].scatter(ds.time[:, 1:], ds.theta[:, 1:], c='black', alpha=0.1, s=0.3)
-    ax[0].plot(ds.time[350, 1:], mean_theta, c='magenta', label='mean temperature')
+    ax[0].plot(data_ds.time[0, 1:], mean_theta, c='magenta', label='mean temperature')
     ax[0].set_xlabel('Time', fontsize=12)
     ax[0].tick_params('x', labelrotation=45)
     ax[0].set_ylabel('Temperature (°C)', fontsize=12)
@@ -93,7 +98,50 @@ for s in np.array(('WesterschouwenSchouwen', 'Westkapelle', 'Monster', 'DenHelde
     ax[1].set_xlim(-1, 75)
     # for i in range(10000):
     #     plt.plot(ds.time[i, 1:], ds.theta[i, 1:], c='royalblue')
-    # plt.show()
-    plt.savefig(home_folder + 'Plots/{0}_log.jpeg'.format(file))
+    plt.show()
+    # plt.savefig(home_folder + 'Simulations/Plots/{0}_log.jpeg'.format(file))
+    print("First plot completed")
 
+    # region: Figure to plot the location of stranding event
+    d_10 = days_10[~np.isnan(days_10)].astype(int)
+    d_12 = days_12[~np.isnan(days_12)].astype(int)
+    d_14 = days_14[~np.isnan(days_14)].astype(int)
 
+    lats_d10 = [ds.lat[i, j].values for i, j in zip(range(n_particles), d_10)]
+    lons_d10 = [ds.lon[i, j].values for i, j in zip(range(n_particles), d_10)]
+    lats_d12 = [ds.lat[i, j].values for i, j in zip(range(n_particles), d_12)]
+    lons_d12 = [ds.lon[i, j].values for i, j in zip(range(n_particles), d_12)]
+    lats_d14 = [ds.lat[i, j].values for i, j in zip(range(n_particles), d_14)]
+    lons_d14 = [ds.lon[i, j].values for i, j in zip(range(n_particles), d_14)]
+
+    # we need to coordinates file to access the corner points - glamf/gphif
+    model_mask_file = home_folder + 'data/landMask_297x_375y'
+    landMask = np.genfromtxt(model_mask_file, delimiter=None)
+    true_lmask = np.genfromtxt(home_folder + 'data/true_landMask_296x_374y', delimiter=None)
+    U_ds = xr.open_dataset(home_folder + 'data/metoffice_foam1_amm7_NWS_CUR_dm20141211.nc')
+    lons = U_ds.longitude
+    lats = U_ds.latitude
+    fieldMesh_x, fieldMesh_y = np.meshgrid(lons, lats)
+
+    figure2 = plt.figure(figsize=(12, 8), dpi=figure_dpi)
+    # ax2 = plt.axes(projection=ccrs.PlateCarree())
+    # ax2.coastlines(resolution='50m')
+    plt.title('Crossing temperature threshold: {0}'.format(s))
+    colormap = colors.ListedColormap(['white', 'gainsboro'])
+    ax2 = plt.axes()
+    ax2.pcolormesh(fieldMesh_x[130:201, 135:231], fieldMesh_y[130:201, 135:231], true_lmask[130:200, 135:230],
+                   cmap=colormap)
+
+    ax2.scatter(lons_d10, lats_d10, c='b', s=4, label='10°C')
+    ax2.scatter(lons_d14, lats_d14, c='tomato', s=4, label='14°C', alpha=0.7)
+    ax2.scatter(lons_d12, lats_d12, c='orange', s=4, label='12°C', alpha=0.7)
+    # reordering the labels
+    handles, labels = ax[1].get_legend_handles_labels()
+    # specify order
+    order = [0, 2, 1]
+    # pass handle & labels lists along with order as below
+    ax2.legend([handles[i] for i in order], [labels[i] for i in order], prop={'size': 12})
+    plt.show()
+    # plt.savefig(home_folder + 'Simulations/Plots/ColdStunningLocations_{0}.jpeg'.format(s))
+
+    # endregion
