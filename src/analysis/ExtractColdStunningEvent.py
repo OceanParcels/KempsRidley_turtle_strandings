@@ -58,16 +58,16 @@ for s in np.array(('Monster', 'Den-Helder', 'Westerschouwen-Schouwen', 'Westkape
     days_14[:] = np.nan
 
     for i in range(n_particles):
-        filter_10 = np.where(ds.theta[i, 1:] > threshold_t10)[0]
+        filter_10 = np.where(ds.theta[i, 1:] < threshold_t10)[0]
         if filter_10.size > 0:
             # plus 1: since we are ignoring day 0 and np.where returns results from day 1 onwards
-            days_10[i] = filter_10[0] + 1
-        filter_12 = np.where(ds.theta[i, 1:] > threshold_t12)[0]
+            days_10[i] = filter_10[-1] + 1
+        filter_12 = np.where(ds.theta[i, 1:] < threshold_t12)[0]
         if filter_12.size > 0:
-            days_12[i] = filter_12[0] + 1
-        filter_14 = np.where(ds.theta[i, 1:] > threshold_t14)[0]
+            days_12[i] = filter_12[-1] + 1
+        filter_14 = np.where(ds.theta[i, 1:] < threshold_t14)[0]
         if filter_14.size > 0:
-            days_14[i] = filter_14[0] + 1
+            days_14[i] = filter_14[-1] + 1
 
     print('Location: ', s)
     print('min max days for 10C: ', min(days_10), max(days_10))
@@ -91,8 +91,8 @@ for s in np.array(('Monster', 'Den-Helder', 'Westerschouwen-Schouwen', 'Westkape
     ax[1].legend([handles[i] for i in order], [labels[i] for i in order], prop={'size': 12})
 
     # ax[1].legend(prop={'size': 12})
-    ax[1].set_xlabel('Days before threshold temperature', fontsize=12)
-    ax[1].set_ylabel('Number of particles', fontsize=12)
+    ax[1].set_xlabel('Days before stranding', fontsize=12)
+    ax[1].set_ylabel('Number of particles crossing threshold temperatures', fontsize=12)
     ax[1].set_yscale('log')
     ax[1].set_ylim(0.001, 10000)
     ax[1].set_xlim(-1, 75)
