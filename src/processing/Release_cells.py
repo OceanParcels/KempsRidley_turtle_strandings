@@ -86,12 +86,14 @@ ax.set_ylim(50, 55)
 custom_lines = [Line2D([], [], color='black', marker='x', linestyle='None', markersize=12, label='Stranding location'),
                 Line2D([], [], color='red', marker='o', linestyle='None', markersize=5, label='Released particles')]
 ax.legend(handles=custom_lines, bbox_to_anchor=(.01, .93), loc='center left', borderaxespad=0.,
-          framealpha=1,prop={'size': 14})
+          framealpha=1, prop={'size': 14})
 
 # custom_lines = [Line2D([0], [0], c=color_ocean, marker='o', markersize=10, markeredgecolor='k', lw=0),
 #                 Line2D([0], [0], c=color_land, marker='o', markersize=10, markeredgecolor='k', lw=0)]
 # ax.legend(custom_lines, ['ocean point', 'land point'], bbox_to_anchor=(.01, .93), loc='center left', borderaxespad=0.,
 #           framealpha=1)
 
-plt.savefig(home_dir + 'Plots/ReleaseCells.jpeg')
+plt.savefig(home_dir + 'Plots/ReleaseCells.jpeg',
+            bbox_inches='tight',
+            pad_inches=0.2)
 # plt.show()
