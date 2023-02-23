@@ -43,7 +43,7 @@ if 'wind' in fields:
     else:
         raise ValueError('check windage value again')
 else:
-    windp = 'NoWind_Beaching'
+    windp = 'NoWind_AntiBeaching'
     windage = 0
 
 np_sqrt = 100
@@ -205,7 +205,7 @@ fieldMesh_x_re, fieldMesh_y_re = np.meshgrid(re_lons, re_lats)
 pset = ParticleSet.from_list(fieldset=fieldset_all, pclass=TurtleParticle, lon=fieldMesh_x_re, lat=fieldMesh_y_re,
                              time=release_date)
 
-filename = "/nethome/manra003/sim_out/kempT/{0}/Sum_BK_{0}_{1}_{2}days_{3}.nc".format(windp, fields, d_count, location)
+filename = "/nethome/manra003/analysis/KempRidley/simulations/{0}/Sum_BK_{0}_{1}_{2}days_{3}_Test.nc".format(windp, fields, d_count, location)
 
 output_file = pset.ParticleFile(name=filename,
                                 outputdt=timedelta(days=1))
@@ -221,7 +221,7 @@ else:
 
 pset.execute(kernels,
              runtime=timedelta(days=d_count),
-             dt=-1 * timedelta(minutes=5),
+             dt=-1 * timedelta(minutes=10),
              output_file=output_file,
              recovery={ErrorCode.ErrorOutOfBounds: tk.DeleteParticle})
 output_file.close()
