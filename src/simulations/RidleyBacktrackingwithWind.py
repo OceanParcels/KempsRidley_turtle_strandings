@@ -106,10 +106,10 @@ fieldset_stokes.V_stokes.units = Geographic()
 if windage > 0:
     wind_folder='/nethome/manra003/analysis/KempRidley/ERA5_EUWsubset/'
     if location == 'IJmuiden':
-        wind_files = sorted(glob(wind_folder + 'ERA5/reanalysis-era5-single-level_wind10m_200[6-7]*.nc'))
+        wind_files = sorted(glob(wind_folder + 'reanalysis-era5-single-level_wind10m_200[6-7]*.nc'))
     else:
         wind_files = sorted(
-            glob(wind_folder + 'ERA5/reanalysis-era5-single-level_wind10m_{0}*.nc'.format(release_date.year)))
+            glob(wind_folder + 'reanalysis-era5-single-level_wind10m_{0}*.nc'.format(release_date.year)))
 
     filenames_wind = {'U_wind': wind_files,
                       'V_wind': wind_files}
@@ -162,6 +162,7 @@ fieldset_temp = FieldSet.from_netcdf(filenames_tem, variables_tem,
                                      dimensions_tem, indices=index0)
 
 fieldset_all.add_field(fieldset_temp.T)
+fieldset_all.T.grid = fieldset_all.U_curr.grid
 fieldset_all.T.interp_method = 'linear_invdist_land_tracer'  # updated from the interpolation tutorial
 # endregion
 
