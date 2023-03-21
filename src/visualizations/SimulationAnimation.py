@@ -26,12 +26,12 @@ true_lmask = np.genfromtxt('/nethome/manra003/KempsRidley_turtle_strandings/data
 stations = pd.read_csv('/nethome/manra003/KempsRidley_turtle_strandings/data/Locations_NL.csv')
 
 for index, station in stations.iterrows():
-    
-    s = station['Location']
+# index=1
+    s = station['Location']#[index]
     if wind == '0pWind':
-        ds = xr.open_dataset(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes_120days_{1}.nc'.format(wind, s))
+        ds = xr.open_dataset(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes_120days_{1}.zarr'.format(wind, s))
     else:
-        ds = xr.open_dataset(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes+wind_120days_{1}.nc'.format(wind, s))
+        ds = xr.open_dataset(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes+wind_120days_{1}.zarr'.format(wind, s))
 
     print(ds)
 
@@ -42,7 +42,7 @@ for index, station in stations.iterrows():
     #               shading='auto')
     ax.pcolormesh(fieldMesh_x[100:221, 145:241], fieldMesh_y[100:221, 145:241], true_lmask[100:220, 145:240],
                    cmap=colormap)
-    
+
     # ax.pcolormesh(fieldMesh_x[150:251,175:226], fieldMesh_y[150:251,175:226], landMask[150:250,175:225], cmap=colormap)
 
 
