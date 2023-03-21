@@ -43,23 +43,29 @@ lats = U_ds.latitude
 fieldMesh_x, fieldMesh_y = np.meshgrid(lons, lats)
 
 # summary file fields
-with open(home_folder + 'summary_file.csv', 'w', newline='') as file:
-    writer = csv.writer(file)
+with open(home_folder + 'outputs/summary_file_{0}.csv'.format(wind), 'w', newline='') as f:
+    writer = csv.writer(f)
     writer.writerow(["Location", "Min_time_10", "Max_time_10", "Mean_dis_10",
                      "Min_time_12", "Max_time_12", "Mean_dis_12",
                      "Min_time_14", "Max_time_14", "Mean_dis_14"])
+
+#create all data-file 
+full_data = np.zeros((len(stations),n_particles, 4, 3))
+full_data [:,:,:,:] = np.NAN
 
 # 'Westerschouwen-Schouwen', 'Monster', 'DenHelder', 'Westkapelle', 'IJmuiden'
 for ind in stations.index:
     s = stations['Location'][ind]
     if wind == '0pWind':
-        data_ds = xr.open_dataset(home_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes_120days_{1}.nc'.format(wind, s))
+        data_ds = xr.open_zarr(home_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes_120days_{1}.zarr'.format(wind, s))
     else:
-        data_ds = xr.open_dataset(home_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes+wind_120days_{1}.nc'.format(wind, s))
-        
+        data_ds = xr.open_zarr(home_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes+wind_120days_{1}.zarr'.format(wind, s))
+    
+    assert data_ds.theta.shape==(10000,121) 
+    
     # remove all zero temperature and beached particles (only at sea, beached=0)
     ds = data_ds.where((data_ds['theta'] != 0.) & (data_ds['beached'] == 0))
-    mean_theta = ds.theta[:, 1:].mean(dim='traj', skipna=True).values
+    mean_theta = ds.theta[:, 1:].mean(dim='trajectory', skipna=True).values
 
     # second plot:
     days_10 = np.empty((n_particles))
@@ -82,29 +88,26 @@ for ind in stations.index:
             days_14[i] = filter_14[0]
 
     print('Location: ', s)
-    # print('min max days for 10C: ', min(days_10), max(days_10))
-    # print('min max days for 12C: ', min(days_12), max(days_12))
-    # print('min max days for 14C: ', min(days_14), max(days_14))
+    T10_t, T10_count = np.unique(days_10[~np.isnan(days_10)], return_counts=True)
+    T12_t, T12_count = np.unique(days_12[~np.isnan(days_12)], return_counts=True)
+    T14_t, T14_count = np.unique(days_14[~np.isnan(days_14)], return_counts=True)
 
-    T10_t, T10_count = np.unique(days_10, return_counts=True)
-    T12_t, T12_count = np.unique(days_12, return_counts=True)
-    T14_t, T14_count = np.unique(days_14, return_counts=True)
-
-    print('min/max T 10 C: ', min(T10_t), max(T10_t))
-    print('min/max T 12 C: ', min(T12_t), max(T12_t))
-    print('min/max T 14 C: ', min(T14_t), max(T14_t))
+    T10_min,T10_max,T12_min,T12_max,T14_min,T14_max=np.nan,np.nan,np.nan,np.nan,np.nan,np.nan
+    if T10_t.size > 0: T10_min, T10_max = np.nanmin(T10_t), np.nanmax(T10_t)
+    if T12_t.size > 0: T12_min, T12_max = np.nanmin(T12_t), np.nanmax(T12_t)
+    if T14_t.size > 0: T14_min, T14_max = np.nanmin(T14_t), np.nanmax(T14_t)
+    print('min/max T 10 C: ', T10_min, T10_max)
+    print('min/max T 12 C: ', T12_min, T12_max)
+    print('min/max T 14 C: ', T14_min, T14_max)
 
     # region: Figure to plot the location of stranding event
-    d_10 = days_10[~np.isnan(days_10)].astype(int)
-    d_12 = days_12[~np.isnan(days_12)].astype(int)
-    d_14 = days_14[~np.isnan(days_14)].astype(int)
+    d10_ind = np.argwhere(~np.isnan(days_10)).flatten()
+    d12_ind = np.argwhere(~np.isnan(days_12)).flatten()
+    d14_ind = np.argwhere(~np.isnan(days_14)).flatten()
 
-    lats_d10 = [ds.lat[i, j].values for i, j in zip(range(n_particles), d_10)]
-    lons_d10 = [ds.lon[i, j].values for i, j in zip(range(n_particles), d_10)]
-    lats_d12 = [ds.lat[i, j].values for i, j in zip(range(n_particles), d_12)]
-    lons_d12 = [ds.lon[i, j].values for i, j in zip(range(n_particles), d_12)]
-    lats_d14 = [ds.lat[i, j].values for i, j in zip(range(n_particles), d_14)]
-    lons_d14 = [ds.lon[i, j].values for i, j in zip(range(n_particles), d_14)]
+    lats_d10, lons_d10 = [(ds.lat[i, int(days_10[i])].values) for i in d10_ind], [(ds.lon[i, int(days_10[i])].values) for i in d10_ind]
+    lats_d12, lons_d12 = [(ds.lat[i, int(days_12[i])].values) for i in d12_ind], [(ds.lon[i, int(days_12[i])].values) for i in d12_ind]
+    lats_d14, lons_d14 = [(ds.lat[i, int(days_14[i])].values) for i in d14_ind], [(ds.lon[i, int(days_14[i])].values) for i in d14_ind]
 
     # compute average distance from stranding location
     dis_10t = [util.dist_pairs_km(x, y, stations['Longitude'][ind], stations['Latitude'][ind]) for x, y in
@@ -113,15 +116,26 @@ for ind in stations.index:
                zip(lons_d12, lats_d12)]
     dis_14t = [util.dist_pairs_km(x, y, stations['Longitude'][ind], stations['Latitude'][ind]) for x, y in
                zip(lons_d14, lats_d14)]
+    
     print('mean distance 10 C: ', np.nanmean(dis_10t))
     print('mean distance 12 C: ', np.nanmean(dis_12t))
     print('mean distance 14 C: ', np.nanmean(dis_14t))
 
+    def fill_data(st, tc, lats, lons, days, dist, indices):
+        if len(lats) > 0 : 
+            full_data[st, indices, 0, tc] = lats
+            full_data[st, indices, 1, tc] = lons
+            full_data[st, indices, 2, tc] = days[indices]
+            full_data[st, indices, 3, tc] = dist
+    fill_data(ind, 0, lats_d10, lons_d10, days_10, dis_10t, d10_ind)
+    fill_data(ind, 1, lats_d12, lons_d12, days_12, dis_12t, d12_ind)
+    fill_data(ind, 2, lats_d14, lons_d14, days_14, dis_14t, d14_ind)
+        
     with open(home_folder + 'outputs/summary_file_{0}.csv'.format(wind), 'a', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow([s, min(T10_t), max(T10_t), np.around(np.nanmean(dis_10t), 1),
-                         min(T12_t), max(T12_t), np.around(np.nanmean(dis_12t), 1),
-                         min(T14_t), max(T14_t), np.around(np.nanmean(dis_14t), 1)])
+        writer.writerow([s, T10_min, T10_max, np.around(np.nanmean(dis_10t), 1),
+                         T12_min, T12_max, np.around(np.nanmean(dis_12t), 1),
+                         T14_min, T14_max, np.around(np.nanmean(dis_14t), 1)])
 
     custom_size = 18
     fig, ax = plt.subplots(ncols=2, nrows=1,
@@ -217,3 +231,5 @@ for ind in stations.index:
     # plt.show()
 
     # endregion
+
+np.save(home_folder + 'outputs/full_data_{0}.npy'.format(wind), full_data)
