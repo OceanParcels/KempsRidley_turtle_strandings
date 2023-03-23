@@ -78,7 +78,7 @@ fieldset_current = FieldSet.from_netcdf(filenames_re, variables_re,
                                         dimensions_re, indices=index0)
 fieldset_current.U_curr.units = GeographicPolar()
 fieldset_current.V_curr.units = Geographic()
-
+# endregion
 
 # region: load stokes
 if location == 'IJmuiden':
@@ -102,8 +102,8 @@ fieldset_stokes.U_stokes.units = GeographicPolar()
 fieldset_stokes.V_stokes.units = Geographic()
 # endregion
 
-# region: load wind
 if windage > 0:
+    # region: load wind
     wind_folder='/nethome/manra003/analysis/KempRidley/ERA5_EUWsubset/'
     if location == 'IJmuiden':
         wind_files = sorted(glob(wind_folder + 'reanalysis-era5-single-level_wind10m_200[6-7]*.nc'))
@@ -125,7 +125,8 @@ if windage > 0:
     fieldset_wind.V_wind.set_scaling_factor(windage)
     fieldset_wind.U_wind.units = GeographicPolar()
     fieldset_wind.V_wind.units = Geographic()    
-
+    # endregion
+    
     #Create full fieldset with all the fields summed together
     fieldset_all = FieldSet(U=fieldset_current.U_curr + fieldset_stokes.U_stokes + fieldset_wind.U_wind,
                             V=fieldset_current.V_curr + fieldset_stokes.V_stokes + fieldset_wind.V_wind)

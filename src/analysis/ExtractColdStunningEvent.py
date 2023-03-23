@@ -15,6 +15,7 @@ import csv
 from matplotlib.lines import Line2D
 import cartopy.feature as cfeature
 import sys
+import time
 
 args = sys.argv
 assert len(args) == 2
@@ -49,58 +50,73 @@ with open(home_folder + 'outputs/summary_file_{0}.csv'.format(wind), 'w', newlin
                      "Min_time_12", "Max_time_12", "Mean_dis_12",
                      "Min_time_14", "Max_time_14", "Mean_dis_14"])
 
-#create all data-file 
-full_data = np.zeros((len(stations),n_particles, 4, 3))
-full_data [:,:,:,:] = np.NAN
+# create all data-file
+full_data = np.zeros((len(stations), n_particles, 4, 3))
+full_data[:, :, :, :] = np.NAN
 
-# 'Westerschouwen-Schouwen', 'Monster', 'DenHelder', 'Westkapelle', 'IJmuiden'
+# 'Westenschouwen-Schouwen', 'Monster', 'DenHelder', 'Westkapelle', 'IJmuiden'
 for ind in stations.index:
+    print('Location: ', s)
     s = stations['Location'][ind]
     if wind == '0pWind':
         data_ds = xr.open_zarr(home_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes_120days_{1}.zarr'.format(wind, s))
     else:
         data_ds = xr.open_zarr(home_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes+wind_120days_{1}.zarr'.format(wind, s))
     
-    assert data_ds.theta.shape==(10000,121) 
-    
-    # remove all zero temperature and beached particles (only at sea, beached=0)
-    ds = data_ds.where((data_ds['theta'] != 0.) & (data_ds['beached'] == 0))
-    mean_theta = ds.theta[:, 1:].mean(dim='trajectory', skipna=True).values
+    assert data_ds.theta.shape == (10000, 121)
+
+    zeroT_ds = data_ds.where(data_ds['theta'] == 0.)
+    zero_traj, zero_obs = np.where(~np.isnan(zeroT_ds.lon.values) == True)
+    assert zero_traj.size == 0 & zero_obs.size == 0
+    print("asserts completed")
+    # remove all beached particles (only at sea, beached=0)
+    ds = data_ds.where(data_ds['beached'] == 0)
+    # to not ignore day 0 temperatures
+    mean_theta = ds.theta[:, :].mean(dim='trajectory', skipna=True).values
 
     # second plot:
-    days_10 = np.empty((n_particles))
-    days_10[:] = np.nan
-    days_12 = np.empty((n_particles))
-    days_12[:] = np.nan
-    days_14 = np.empty((n_particles))
-    days_14[:] = np.nan
+    start = time.process_time()
+    def filter_function(threshold_t, empty_value):
+        days = np.empty((n_particles))
+        days[:] = np.nan
+        filter_t = np.where(ds.theta[:, :] > threshold_t)
+        df = pd.DataFrame({'traj':filter_t[0],
+                   'days':filter_t[1]})
+        grouped = df.groupby('traj').first()
+        days[grouped.index] = (grouped.values - 1).flatten()
 
-    for i in range(n_particles):
-        filter_10 = np.where(ds.theta[i, 1:] > threshold_t10)[0]
-        if filter_10.size > 0 and filter_10[0] != 0:  # add condition: filter_10[0] != 0-> threshold is never crossed.
-            # plus 1: since we are ignoring day 0 and np.where returns results from day 1 onwards
-            days_10[i] = filter_10[0]
-        filter_12 = np.where(ds.theta[i, 1:] > threshold_t12)[0]
-        if filter_12.size > 0 and filter_12[0] != 0:
-            days_12[i] = filter_12[0]
-        filter_14 = np.where(ds.theta[i, 1:] > threshold_t14)[0]
-        if filter_14.size > 0 and filter_14[0] != 0:
-            days_14[i] = filter_14[0]
+        # if no indices were returned for a particle: it was always below the threshold, set empty value
+        days[np.isnan(days)] = empty_value
+        #if always above, returns 0 in search-> -1 ; so now replace it with nan
+        days[days < 0] = np.nan
+        return days
+        # if filter_t.size == 0:  # always below Tc,
+        #     return empty_value  # -3: 10C, -2: 12C and -1 for 14C
+        # elif filter_t[0] == 0:  # add condition: filter_10[0] != 0-> threshold is never crossed, always above Tc.
+        #     return np.nan
+        # else:
+        #     return filter_t[0] - 1  # -1 to access the days before stranding.
 
-    print('Location: ', s)
+ 
+    days_10 = filter_function(threshold_t10, -3)
+    days_12 = filter_function(threshold_t12, -2)
+    days_14 = filter_function(threshold_t14, -1)
+
     T10_t, T10_count = np.unique(days_10[~np.isnan(days_10)], return_counts=True)
     T12_t, T12_count = np.unique(days_12[~np.isnan(days_12)], return_counts=True)
     T14_t, T14_count = np.unique(days_14[~np.isnan(days_14)], return_counts=True)
 
-    T10_min,T10_max,T12_min,T12_max,T14_min,T14_max=np.nan,np.nan,np.nan,np.nan,np.nan,np.nan
+    T10_min, T10_max, T12_min, T12_max, T14_min, T14_max = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
     if T10_t.size > 0: T10_min, T10_max = np.nanmin(T10_t), np.nanmax(T10_t)
     if T12_t.size > 0: T12_min, T12_max = np.nanmin(T12_t), np.nanmax(T12_t)
     if T14_t.size > 0: T14_min, T14_max = np.nanmin(T14_t), np.nanmax(T14_t)
     print('min/max T 10 C: ', T10_min, T10_max)
     print('min/max T 12 C: ', T12_min, T12_max)
     print('min/max T 14 C: ', T14_min, T14_max)
-
+    
+    print("days for threshold computed in ",time.process_time() - start)
     # region: Figure to plot the location of stranding event
+    start2 = time.process_time()
     d10_ind = np.argwhere(~np.isnan(days_10)).flatten()
     d12_ind = np.argwhere(~np.isnan(days_12)).flatten()
     d14_ind = np.argwhere(~np.isnan(days_14)).flatten()
@@ -120,6 +136,7 @@ for ind in stations.index:
     print('mean distance 10 C: ', np.nanmean(dis_10t))
     print('mean distance 12 C: ', np.nanmean(dis_12t))
     print('mean distance 14 C: ', np.nanmean(dis_14t))
+    print("distance for threshold crossing points computed in ",time.process_time() - start2)
 
     def fill_data(st, tc, lats, lons, days, dist, indices):
         if len(lats) > 0 : 
@@ -145,11 +162,11 @@ for ind in stations.index:
     ax[0].axhline(threshold_t12, c='orange', linestyle='--', label='12°C')
     ax[0].axhline(threshold_t14, c='red', linestyle='--', label='14°C')
     # ax[0].set_xlim(ds.time[1, 0].values - np.timedelta64(days, 'D'), ds.time[1, 0])
-    ax[0].set_xlim(np.nanmin(ds.time[:, 1:].values), np.nanmax(ds.time[:, 1:].values))
+    ax[0].set_xlim(np.nanmin(ds.time[:, :].values), np.nanmax(ds.time[:, 1:].values))
     ax[0].set_ylim(7, 21)
 
-    ax[0].scatter(ds.time[:, 1:], ds.theta[:, 1:], c='black', alpha=0.1, s=0.3)
-    ax[0].plot(data_ds.time[0, 1:], mean_theta, c='magenta', label='mean temperature')
+    ax[0].scatter(ds.time[:, :], ds.theta[:, :], c='black', alpha=0.1, s=0.3)
+    ax[0].plot(data_ds.time[0, :], mean_theta, c='magenta', label='mean temperature')
     ax[0].set_xlabel('Time', fontsize=custom_size)
     ax[0].tick_params('x', labelrotation=45, labelsize=custom_size)
     ax[0].tick_params(axis='y', labelsize=custom_size)
@@ -175,7 +192,7 @@ for ind in stations.index:
     ax[1].set_ylabel('Number of particles crossing threshold temperatures', fontsize=custom_size)
     ax[1].set_yscale('log')
     ax[1].set_ylim(0.001, 10000)
-    ax[1].set_xlim(-1, 75)
+    ax[1].set_xlim(-5, 75)
     ax[1].tick_params(axis='both', labelsize=custom_size)
     # for i in range(10000):
     #     plt.plot(ds.time[i, 1:], ds.theta[i, 1:], c='royalblue')
@@ -229,6 +246,7 @@ for ind in stations.index:
                 bbox_inches='tight',
                 pad_inches=0.2)
     # plt.show()
+    print("plotting completed. Total time in ", time.process_time() - start)
 
     # endregion
 

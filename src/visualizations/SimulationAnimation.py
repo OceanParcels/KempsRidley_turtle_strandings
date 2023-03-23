@@ -33,8 +33,6 @@ for index, station in stations.iterrows():
     else:
         ds = xr.open_dataset(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes+wind_120days_{1}.zarr'.format(wind, s))
 
-    print(ds)
-
     fig, [ax, cax] = plt.subplots(1, 2, gridspec_kw={"width_ratios": [50, 1]}, dpi=300)
     colormap = colors.ListedColormap(['white', 'gainsboro'])
 
