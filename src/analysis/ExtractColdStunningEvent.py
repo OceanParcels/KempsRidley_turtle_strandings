@@ -8,12 +8,12 @@ import xarray as xr
 import matplotlib.pyplot as plt
 import numpy as np
 import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from matplotlib import colors
 import pandas as pd
 import util
 import csv
 from matplotlib.lines import Line2D
-import cartopy.feature as cfeature
 import sys
 import time
 
@@ -56,8 +56,8 @@ full_data[:, :, :, :] = np.NAN
 
 # 'Westenschouwen-Schouwen', 'Monster', 'DenHelder', 'Westkapelle', 'IJmuiden'
 for ind in stations.index:
-    print('Location: ', s)
     s = stations['Location'][ind]
+    print('Location: ', s)
     if wind == '0pWind':
         data_ds = xr.open_zarr(home_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes_120days_{1}.zarr'.format(wind, s))
     else:
@@ -221,14 +221,11 @@ for ind in stations.index:
     # ax2.set_ylim(min_lat, max_lat)
     ax2.set_title('Locations where temperature crosses threshold temperatures: {0}'.format(s))
     colormap = colors.ListedColormap(['white', 'lightgrey'])
-    # ax2.pcolormesh(fieldMesh_x[130:201, 135:231], fieldMesh_y[130:201, 135:231], true_lmask[130:200, 135:230],
-    #                cmap=colormap)
+
     ax2.pcolormesh(fieldMesh_x[130:221, 145:241], fieldMesh_y[130:221, 145:241], true_lmask[130:220, 145:240],
                    cmap=colormap)
 
     ax2.add_feature(cfeature.COASTLINE, edgecolor='gray')
-    # ax2.add_feature(cfeature.BORDERS, edgecolor='lightgray')
-    # ax2.add_feature(cfeature.LAND, color='lightgray')
     ax2.scatter(lons_d10, lats_d10, c='b', s=4, label='10°C')
     ax2.scatter(lons_d14, lats_d14, c='tomato', s=4, label='14°C', alpha=0.7)
     ax2.scatter(lons_d12, lats_d12, c='orange', s=4, label='12°C', alpha=0.7)

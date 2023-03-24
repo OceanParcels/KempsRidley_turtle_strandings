@@ -4,7 +4,8 @@ from datetime import timedelta
 import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib import colors, colorbar
-import cmocean
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 import pandas as pd
 import sys
 
@@ -13,6 +14,8 @@ assert len(args) == 2
 
 wind = args[1]
 print(wind)
+min_lon, max_lon = -15, 8
+min_lat, max_lat = 42, 57
 
 base_folder = '/nethome/manra003/analysis/KempRidley/'
 
@@ -21,7 +24,7 @@ U_ds = xr.open_dataset('/storage/shared/oceanparcels/input_data/CMEMS/NWSHELF_MU
 lons = U_ds.longitude
 lats = U_ds.latitude
 fieldMesh_x, fieldMesh_y = np.meshgrid(lons, lats)
-true_lmask = np.genfromtxt('/nethome/manra003/KempsRidley_turtle_strandings/data/true_landMask_296x_374y', delimiter=None)
+lmask = np.genfromtxt('/nethome/manra003/KempsRidley_turtle_strandings/data/landMask_297x_375y', delimiter=None)
 
 stations = pd.read_csv('/nethome/manra003/KempsRidley_turtle_strandings/data/Locations_NL.csv')
 
@@ -29,20 +32,28 @@ for index, station in stations.iterrows():
 # index=1
     s = station['Location']#[index]
     if wind == '0pWind':
-        ds = xr.open_dataset(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes_120days_{1}.zarr'.format(wind, s))
+        ds = xr.open_zarr(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes_120days_{1}.zarr'.format(wind, s))
     else:
-        ds = xr.open_dataset(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes+wind_120days_{1}.zarr'.format(wind, s))
+        ds = xr.open_zarr(base_folder + 'simulations/{0}/Sum_BK_{0}_curr+stokes+wind_120days_{1}.zarr'.format(wind, s))
 
-    fig, [ax, cax] = plt.subplots(1, 2, gridspec_kw={"width_ratios": [50, 1]}, dpi=300)
+    fig, [ax, cax] = plt.subplots(1, 2, gridspec_kw={"width_ratios": [50, 1]}, subplot_kw={'projection': ccrs.PlateCarree()}, dpi=300)
     colormap = colors.ListedColormap(['white', 'gainsboro'])
-
-    # ax.pcolormesh(fieldMesh_x, fieldMesh_y, landMask, cmap=colormap,
-    #               shading='auto')
-    ax.pcolormesh(fieldMesh_x[100:221, 145:241], fieldMesh_y[100:221, 145:241], true_lmask[100:220, 145:240],
-                   cmap=colormap)
-
-    # ax.pcolormesh(fieldMesh_x[150:251,175:226], fieldMesh_y[150:251,175:226], landMask[150:250,175:225], cmap=colormap)
-
+    gl = ax.gridlines(draw_labels=True)
+    gl.xlines = False
+    gl.ylines = False
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.xlabel_style = {'size': 10, 'color': 'k'}
+    gl.ylabel_style = {'size': 10, 'color': 'k'}
+    ax.add_feature(cfeature.LAND)
+    ax.add_feature(cfeature.COASTLINE, edgecolor='gray')
+    ax.set_xlim(min_lon, max_lon)
+    ax.set_ylim(min_lat, max_lat)
+    ax.pcolormesh(fieldMesh_x, fieldMesh_y, lmask, cmap=colormap)
+    # ax.pcolormesh(fieldMesh_x[100:221, 145:241], fieldMesh_y[100:221, 145:241], true_lmask[100:220, 145:240],
+    #                cmap=colormap)
+    ax.set_xlim(min_lon, max_lon)
+    ax.set_ylim(min_lat, max_lat)
 
     # region Animation
     output_dt = timedelta(days=1)

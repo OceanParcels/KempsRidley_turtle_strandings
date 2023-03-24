@@ -25,7 +25,7 @@ def SampleTemperature(particle, fieldset, time):
    
     
 def DeleteParticle(particle, fieldset, time):
-    print('Particle deleted %d %.2f %.2f %d' % (particle.id, time, particle.lat, particle.lon, particle.beached))
+    print('Particle deleted %d %d %.2f %.2f %d' % (particle.id, time, particle.lat, particle.lon, particle.beached))
     particle.delete()
     
 
