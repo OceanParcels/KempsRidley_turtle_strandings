@@ -14,6 +14,7 @@ import pandas as pd
 import util
 import csv
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 import sys
 import time
 
@@ -81,14 +82,15 @@ for ind in stations.index:
         days[:] = np.nan
         filter_t = np.where(ds.theta[:, :] > threshold_t)
         df = pd.DataFrame({'traj':filter_t[0],
-                   'days':filter_t[1]})
+                'days':filter_t[1]})
         grouped = df.groupby('traj').first()
-        days[grouped.index] = (grouped.values - 1).flatten()
+        days[grouped.index] = (grouped.values).flatten()
 
         # if no indices were returned for a particle: it was always below the threshold, set empty value
         days[np.isnan(days)] = empty_value
-        #if always above, returns 0 in search-> -1 ; so now replace it with nan
-        days[days < 0] = np.nan
+        days = days - 1
+        #if always above threshold, returns 0 in search, now -1 ; so now replace it with nan
+        days[days == -1] = np.nan
         return days
         # if filter_t.size == 0:  # always below Tc,
         #     return empty_value  # -3: 10C, -2: 12C and -1 for 14C
@@ -98,9 +100,9 @@ for ind in stations.index:
         #     return filter_t[0] - 1  # -1 to access the days before stranding.
 
  
-    days_10 = filter_function(threshold_t10, -3)
-    days_12 = filter_function(threshold_t12, -2)
-    days_14 = filter_function(threshold_t14, -1)
+    days_10 = filter_function(threshold_t10, -4) #stores -5
+    days_12 = filter_function(threshold_t12, -3) #stores -4
+    days_14 = filter_function(threshold_t14, -2)  #stores -3
 
     T10_t, T10_count = np.unique(days_10[~np.isnan(days_10)], return_counts=True)
     T12_t, T12_count = np.unique(days_12[~np.isnan(days_12)], return_counts=True)
@@ -113,13 +115,13 @@ for ind in stations.index:
     print('min/max T 10 C: ', T10_min, T10_max)
     print('min/max T 12 C: ', T12_min, T12_max)
     print('min/max T 14 C: ', T14_min, T14_max)
-    
     print("days for threshold computed in ",time.process_time() - start)
+
     # region: Figure to plot the location of stranding event
     start2 = time.process_time()
-    d10_ind = np.argwhere(~np.isnan(days_10)).flatten()
-    d12_ind = np.argwhere(~np.isnan(days_12)).flatten()
-    d14_ind = np.argwhere(~np.isnan(days_14)).flatten()
+    d10_ind = np.argwhere((~np.isnan(days_10)) & (days_10 >= 0)).flatten()
+    d12_ind = np.argwhere((~np.isnan(days_12)) & (days_12 >= 0)).flatten()
+    d14_ind = np.argwhere((~np.isnan(days_14)) & (days_14 >= 0)).flatten()
 
     lats_d10, lons_d10 = [(ds.lat[i, int(days_10[i])].values) for i in d10_ind], [(ds.lon[i, int(days_10[i])].values) for i in d10_ind]
     lats_d12, lons_d12 = [(ds.lat[i, int(days_12[i])].values) for i in d12_ind], [(ds.lon[i, int(days_12[i])].values) for i in d12_ind]
@@ -127,12 +129,12 @@ for ind in stations.index:
 
     # compute average distance from stranding location
     dis_10t = [util.dist_pairs_km(x, y, stations['Longitude'][ind], stations['Latitude'][ind]) for x, y in
-               zip(lons_d10, lats_d10)]
+                zip(lons_d10, lats_d10)]
     dis_12t = [util.dist_pairs_km(x, y, stations['Longitude'][ind], stations['Latitude'][ind]) for x, y in
-               zip(lons_d12, lats_d12)]
+                zip(lons_d12, lats_d12)]
     dis_14t = [util.dist_pairs_km(x, y, stations['Longitude'][ind], stations['Latitude'][ind]) for x, y in
-               zip(lons_d14, lats_d14)]
-    
+                zip(lons_d14, lats_d14)]
+
     print('mean distance 10 C: ', np.nanmean(dis_10t))
     print('mean distance 12 C: ', np.nanmean(dis_12t))
     print('mean distance 14 C: ', np.nanmean(dis_14t))
@@ -156,46 +158,43 @@ for ind in stations.index:
 
     custom_size = 18
     fig, ax = plt.subplots(ncols=2, nrows=1,
-                           dpi=figure_dpi, figsize=(16, 8))
+                                dpi=figure_dpi, figsize=(16, 8))
     fig.suptitle('Time_{0}_{1}_log'.format(wind, s))
     ax[0].axhline(threshold_t10, c='b', linestyle='--', label='10°C')
     ax[0].axhline(threshold_t12, c='orange', linestyle='--', label='12°C')
     ax[0].axhline(threshold_t14, c='red', linestyle='--', label='14°C')
     # ax[0].set_xlim(ds.time[1, 0].values - np.timedelta64(days, 'D'), ds.time[1, 0])
-    ax[0].set_xlim(np.nanmin(ds.time[:, :].values), np.nanmax(ds.time[:, 1:].values))
     ax[0].set_ylim(7, 21)
-
     ax[0].scatter(ds.time[:, :], ds.theta[:, :], c='black', alpha=0.1, s=0.3)
+    max_time = np.nanmax(ds.time[:, :].values) #always available
+    ax[0].set_xlim(max_time - np.timedelta64(days, 'D'), max_time)
     ax[0].plot(data_ds.time[0, :], mean_theta, c='magenta', label='mean temperature')
     ax[0].set_xlabel('Time', fontsize=custom_size)
-    ax[0].tick_params('x', labelrotation=45, labelsize=custom_size)
+    ax[0].tick_params('x', labelrotation=60, labelsize=custom_size)
     ax[0].tick_params(axis='y', labelsize=custom_size)
     ax[0].set_ylabel('Temperature (°C)', fontsize=custom_size)
     ax[0].set_xlabel('Time', fontsize=custom_size)
     ax[0].legend(loc='upper right', prop={'size': custom_size})
 
-    ax[1].bar(T10_t, T10_count, color='b', label='10°C')
+    ax[1].bar(T10_t, T10_count, color='blue', label='10°C')
     ax[1].bar(T14_t, T14_count, color='tomato', label='14°C')
     ax[1].bar(T12_t, T12_count, color='orange', label='12°C', alpha=0.7)
-
-    # reordering the labels
-    handles, labels = ax[1].get_legend_handles_labels()
-
-    # specify order
-    order = [0, 2, 1]
-
-    # pass handle & labels lists along with order as below
-    ax[1].legend([handles[i] for i in order], [labels[i] for i in order], loc='upper right', prop={'size': custom_size})
-
-    # ax[1].legend(prop={'size': 12})
+    handles = [Patch(facecolor='b', edgecolor='none'),
+            Patch(facecolor='orange', edgecolor='none'),
+            Patch(facecolor='tomato', edgecolor='none')]
+    labels = ['10°C', '12°C', '14°C']
+    if (T10_t.size > 0 and T10_t[0] < 0) or (T12_t.size > 0 and T12_t[0] < 0) or (T14_t.size > 0 and T14_t[0] < 0):
+        ax[1].fill_between([-6,-2],[10000,10000], facecolor="none", hatch="//", edgecolor="grey", linewidth=0)
+        handles.append(Patch(facecolor='white',hatch='//'))
+        labels.append("Always below")
+        
+    ax[1].legend(handles, labels,loc='upper right', prop={'size': custom_size})
     ax[1].set_xlabel('Days before stranding', fontsize=custom_size)
     ax[1].set_ylabel('Number of particles crossing threshold temperatures', fontsize=custom_size)
     ax[1].set_yscale('log')
     ax[1].set_ylim(0.001, 10000)
     ax[1].set_xlim(-5, 75)
     ax[1].tick_params(axis='both', labelsize=custom_size)
-    # for i in range(10000):
-    #     plt.plot(ds.time[i, 1:], ds.theta[i, 1:], c='royalblue')
     plt.subplots_adjust(wspace=0.3)
     plt.savefig(home_folder + 'outputs/{0}/Time_{0}_{1}_log.jpeg'.format(wind, s),
                 bbox_inches='tight',
@@ -215,22 +214,25 @@ for ind in stations.index:
     gl.xlabel_style = {'size': custom_size, 'color': 'k'}
     gl.ylabel_style = {'size': custom_size, 'color': 'k'}
     ax2.add_feature(cfeature.LAND)
-
-    # ax.coastlines(resolution='50m')
-    # ax2.set_xlim(min_lon, max_lon)
-    # ax2.set_ylim(min_lat, max_lat)
     ax2.set_title('Locations where temperature crosses threshold temperatures: {0}'.format(s))
     colormap = colors.ListedColormap(['white', 'lightgrey'])
 
-    ax2.pcolormesh(fieldMesh_x[130:221, 145:241], fieldMesh_y[130:221, 145:241], true_lmask[130:220, 145:240],
-                   cmap=colormap)
+    latmin=0
+    latmax=375
+    lonmin=0
+    lonmax=297
+    ax2.pcolormesh(fieldMesh_x[latmin:latmax+1,lonmin:lonmax+1], fieldMesh_y[latmin:latmax+1,lonmin:lonmax+1], true_lmask[latmin:latmax,lonmin:lonmax],cmap=colormap)
 
     ax2.add_feature(cfeature.COASTLINE, edgecolor='gray')
+    # ax2.coastlines(resolution='50m')
     ax2.scatter(lons_d10, lats_d10, c='b', s=4, label='10°C')
     ax2.scatter(lons_d14, lats_d14, c='tomato', s=4, label='14°C', alpha=0.7)
     ax2.scatter(lons_d12, lats_d12, c='orange', s=4, label='12°C', alpha=0.7)
     ax2.scatter(stations['Longitude'][ind], stations['Latitude'][ind], c='black', marker='x', s=200,
                 label='Stranding Location')
+
+    ax2.set_xlim(-5,6)
+    ax2.set_ylim(48,55)
 
     custom_lines = [
         Line2D([], [], color='b', lw=8, label='10°C'),
@@ -238,10 +240,9 @@ for ind in stations.index:
         Line2D([], [], color='tomato', lw=8, label='14°C'),
         Line2D([], [], color='black', marker='x', linestyle='None', markersize=10, label='Stranding location')]
     ax2.legend(handles=custom_lines, loc='upper left', borderpad=0.8, prop={'size': custom_size})
-
     plt.savefig(home_folder + 'outputs/{0}/Locations_{0}_{1}.jpeg'.format(wind, s),
-                bbox_inches='tight',
-                pad_inches=0.2)
+                    bbox_inches='tight',
+                    pad_inches=0.2)
     # plt.show()
     print("plotting completed. Total time in ", time.process_time() - start)
 
