@@ -234,11 +234,10 @@ for ind in stations.index:
     ax2.set_xlim(-5,6)
     ax2.set_ylim(48,55)
 
-    custom_lines = [
-        Line2D([], [], color='b', lw=8, label='10°C'),
-        Line2D([], [], color='orange', lw=8, label='12°C'),
-        Line2D([], [], color='tomato', lw=8, label='14°C'),
-        Line2D([], [], color='black', marker='x', linestyle='None', markersize=10, label='Stranding location')]
+    custom_lines = [Patch(facecolor='b', edgecolor='none', label='10°C'),
+                    Patch(facecolor='orange', edgecolor='none', label='12°C'),
+                    Patch(facecolor='tomato', edgecolor='none', label='14°C'),
+                    Line2D([], [], color='black', marker='x', linestyle='None', markersize=10, label='Stranding location')]
     ax2.legend(handles=custom_lines, loc='upper left', borderpad=0.8, prop={'size': custom_size})
     plt.savefig(home_folder + 'outputs/{0}/Locations_{0}_{1}.jpeg'.format(wind, s),
                     bbox_inches='tight',
