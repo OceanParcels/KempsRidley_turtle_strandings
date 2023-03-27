@@ -10,10 +10,10 @@ import cartopy.feature as cfeature
 import pandas as pd
 import sys
 
-# args = sys.argv
-# assert len(args) == 2
+args = sys.argv
+assert len(args) == 2
 
-wind = '0pWind' #args[1]
+wind = args[1]
 print(wind)
 min_lon, max_lon = -15, 6
 min_lat, max_lat = 45, 55
@@ -76,7 +76,7 @@ for index, station in stations.iterrows():
     # Add the right subplot for the colorbar
     cax = fig.add_subplot(gs[1])
     temp_cmp = plt.cm.coolwarm
-    norm = colors.Normalize(vmin=5, vmax=20)
+    norm = colors.Normalize(vmin=6, vmax=18)
     cb1 = colorbar.ColorbarBase(cax, cmap=temp_cmp,
                                 norm=norm,
                                 orientation='vertical', label='Temperature (°C)')
