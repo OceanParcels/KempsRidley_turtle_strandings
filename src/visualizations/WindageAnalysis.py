@@ -37,7 +37,7 @@ for tc_index, tc in enumerate(['10C', '12C', '14C']):
         fig.data[-1].update(name=windage[i], legendgroup=windage[0])
 
         fig.add_annotation(x=i, y=75,
-                           text='{0}'.format(np.round(np.count_nonzero(~np.isnan(ds_days)) / len(ds_days), 2)),
+                           text='{0}'.format(np.round(np.count_nonzero(~np.isnan(ds_days)) / len(ds_days), 1)),
                            showarrow=False,
                            xref='x{0}'.format(tc_index + 1),
                            yref='y1',
