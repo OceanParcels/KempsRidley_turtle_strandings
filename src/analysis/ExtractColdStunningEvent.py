@@ -1,7 +1,5 @@
 """
 Code to plot the temperature of particles over time and days before stranding.
-Note: Here, we ignore the temperature measurements at the release time, i.e. day 0
-- it adds bias for particles very close to the coast due to temperature interpolation from sea to land cell.
 """
 
 import xarray as xr
