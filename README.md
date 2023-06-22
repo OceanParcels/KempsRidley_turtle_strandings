@@ -5,12 +5,14 @@ Darshika's project on studying drift of cold-stunned Kemp's Ridley Turtles stran
 ### Shelf Environment:
 Currents, winds, Stokes drift and temperature mean of the Northwest Shelf for (nearest) Decembers of years when turtle stranding occurred were extracted by:
 ```src/processing/ExtractEUWesternShelfWindData.ipynb```
+
 and plotted using:
 ```src/visualizations/ShelfEnvironment.ipynb```
 
 ### Simulations:
 2D Backward simulations of 10,000 particles at the nearest coastal cell from the starnding location of the Kemp's ridley turltes were run using Parcels, a Lagrangian Particle Tracking Framework. The code for the simulation is available in this repository at:
 ```src/simulations/RidleyBacktrackingwithWind.py```
+
 Animations of the simulations were obtained using the following code:
 ```src/visualizations/SimulationAnimation.py```
 
