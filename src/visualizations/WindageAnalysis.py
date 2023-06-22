@@ -42,7 +42,7 @@ for tc_index, tc in enumerate(['10C', '12C', '14C']):
                            xref='x{0}'.format(tc_index + 1),
                            yref='y1',
                            yshift=0,
-                           font_size=17,
+                           font_size=20,
                            bgcolor='gainsboro',
                            borderpad=2)
         fig.add_trace(go.Violin(y=ds_dist,
@@ -68,7 +68,7 @@ fig.update_layout(height=1000, width=1200,
                   yaxis5_showticklabels=True,
                   yaxis6_showticklabels=True,
                   title_font_size=20,
-                  font_size=18,
+                  font_size=20,
                   legend_font_size=20)
 fig.show()
 fig.write_image(home_folder + 'windage_analysis.jpeg', scale=5)
